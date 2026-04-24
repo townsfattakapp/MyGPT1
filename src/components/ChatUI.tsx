@@ -14,6 +14,7 @@ import { InputArea } from './chat/InputArea';
 import { ChatHeader } from './chat/ChatHeader';
 import { ScreenshotModal } from './chat/ScreenshotModal';
 import { LiveTranscriptionModal } from './chat/LiveTranscriptionModal';
+import { ProfileEditorModal } from './chat/ProfileEditorModal';
 
 import { useRealtimeTranscription } from '../hooks/useLiveTranscription';
 
@@ -32,8 +33,13 @@ export default function ChatUI() {
     stopGeneration,
     clearChat,
     switchProvider,
-    getAvailableProviders
+    getAvailableProviders,
+    userProfile,
+    setUserProfile,
+    resetUserProfile
   } = useChat();
+
+  const [isProfileEditorOpen, setIsProfileEditorOpen] = React.useState(false);
 
   // 2. Audio Logic (Whisper File-based)
   const {
@@ -165,6 +171,15 @@ export default function ChatUI() {
         onClose={stopLive}
       />
 
+      {/* Profile Editor Modal */}
+      <ProfileEditorModal
+        isOpen={isProfileEditorOpen}
+        onClose={() => setIsProfileEditorOpen(false)}
+        userProfile={userProfile}
+        onSave={setUserProfile}
+        onReset={resetUserProfile}
+      />
+
       {/* Header */}
       <ChatHeader
         messageCount={messages.length}
@@ -172,6 +187,7 @@ export default function ChatUI() {
         switchProvider={switchProvider}
         getAvailableProviders={getAvailableProviders}
         clearChat={clearChat}
+        onEditProfile={() => setIsProfileEditorOpen(true)}
       />
 
       {/* Messages */}

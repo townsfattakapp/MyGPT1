@@ -1,4 +1,4 @@
-const { ipcRenderer, contextBridge } = require('electron');
+const { ipcRenderer, contextBridge, webFrame } = require('electron');
 
 // Use a simple any cast for global state in preload
 const myGlobal = globalThis as any;
@@ -101,6 +101,14 @@ const api = {
 
   getPlatformInfo: (): Promise<{ platform: string; contentProtectionSupported: boolean }> => {
     return ipcRenderer.invoke('get-platform-info');
+  },
+
+  /* ---------- Zoom ---------- */
+  getZoomFactor: (): number => {
+    try { return webFrame.getZoomFactor(); } catch { return 1; }
+  },
+  setZoomFactor: (factor: number) => {
+    try { webFrame.setZoomFactor(factor); } catch (e) { console.warn('setZoomFactor failed:', e); }
   }
 };
 

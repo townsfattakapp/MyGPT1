@@ -9,6 +9,7 @@ interface ChatHeaderProps {
     switchProvider: (provider: AIProvider) => void;
     getAvailableProviders: () => AIProvider[];
     clearChat: () => void;
+    onEditProfile: () => void;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -16,7 +17,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     currentProvider,
     switchProvider,
     getAvailableProviders,
-    clearChat
+    clearChat,
+    onEditProfile
 }) => {
     const providers = getAvailableProviders();
 
@@ -195,19 +197,26 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 )}
             </div>
 
-            {messageCount > 0 && (
-                <div className="flex items-center gap-2">
-                    <div className="text-xs text-gray-400 hidden sm:block">
-                        Ctrl+Shift+H: Stealth • Ctrl+Shift+S / Ctrl+Alt+S: Show
-                    </div>
+            <div className="flex items-center gap-2">
+                <div className="text-xs text-gray-400 hidden sm:block">
+                    Ctrl+Shift+H: Stealth • Ctrl+Shift+S / Ctrl+Alt+S: Show
+                </div>
+                <button
+                    onClick={onEditProfile}
+                    title="Edit the user profile injected into the system prompt"
+                    className="px-3 py-1 text-sm bg-blue-600/10 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/50 rounded-lg transition-all duration-200 font-medium"
+                >
+                    Profile
+                </button>
+                {messageCount > 0 && (
                     <button
                         onClick={clearChat}
                         className="px-3 py-1 text-sm bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white border border-red-600/50 rounded-lg transition-all duration-200 font-medium"
                     >
                         Clear Chat
                     </button>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 };

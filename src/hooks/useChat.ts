@@ -7,8 +7,7 @@ interface Message {
   image?: string;
 }
 
-export const useChat = () => {
-  const userProfile = `
+const DEFAULT_USER_PROFILE = `
 Full Stack Developer with 3+ years of experience at LTTS, specializing in React, Next.js, TypeScript, Node.js, and scalable applications.
 Proven ability to build high-performance web apps, integrate secure APIs, and deliver AI-enhanced solutions.
 Strong background in system design, data structures, and algorithms.
@@ -38,6 +37,23 @@ Core Skills:
 - Tools & Platforms: Git, GitHub, Postman, Docker, Vercel, AWS
 - Additional: Data structures and algorithms, system design, AI integration
 `;
+
+export { DEFAULT_USER_PROFILE };
+
+export const useChat = () => {
+  const [userProfile, setUserProfileState] = useState<string>(() => {
+    return localStorage.getItem('userProfile') ?? DEFAULT_USER_PROFILE;
+  });
+
+  const setUserProfile = useCallback((profile: string) => {
+    setUserProfileState(profile);
+    localStorage.setItem('userProfile', profile);
+  }, []);
+
+  const resetUserProfile = useCallback(() => {
+    setUserProfileState(DEFAULT_USER_PROFILE);
+    localStorage.setItem('userProfile', DEFAULT_USER_PROFILE);
+  }, []);
 
   const systemPrompt =
     import.meta.env.VITE_SYSTEM_PROMPT ||
@@ -247,6 +263,9 @@ Answer length:
     stopGeneration,
     clearChat,
     switchProvider,
-    getAvailableProviders
+    getAvailableProviders,
+    userProfile,
+    setUserProfile,
+    resetUserProfile
   };
 };

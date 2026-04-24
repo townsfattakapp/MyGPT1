@@ -34,7 +34,6 @@ let stealthActive = false;
 let protectedModeActive = false;
 let stealthConcealMode: StealthConcealMode = 'hide';
 let prevAlwaysOnTop = true;
-const hideFromTaskbarWhenStealth = true;
 
 const STEALTH_HIDE_SHORTCUT = 'CommandOrControl+Shift+H';
 const STEALTH_SHOW_SHORTCUT = 'CommandOrControl+Shift+S';
@@ -75,7 +74,7 @@ function showWindowWithFallback(win: BrowserWindow) {
 
 function applyStealthVisualState(win: BrowserWindow) {
   if (stealthConcealMode === 'hide') {
-    try { win.setSkipTaskbar(hideFromTaskbarWhenStealth); } catch (e) { console.warn('setSkipTaskbar failed:', e); }
+    try { win.setSkipTaskbar(true); } catch (e) { console.warn('setSkipTaskbar failed:', e); }
     if (win.isVisible()) {
       try { win.hide(); } catch (e) { console.warn('hide() failed:', e); }
     }
@@ -83,7 +82,8 @@ function applyStealthVisualState(win: BrowserWindow) {
   }
 
   // Overlay mode keeps the window visible, but renderer swaps to neutral UI.
-  try { win.setSkipTaskbar(false); } catch (e) { console.warn('setSkipTaskbar failed:', e); }
+  // Stay hidden from the taskbar always — the app is intentionally not surfaced there.
+  try { win.setSkipTaskbar(true); } catch (e) { console.warn('setSkipTaskbar failed:', e); }
   if (!win.isVisible()) showWindowWithFallback(win);
 }
 
@@ -253,8 +253,8 @@ function forceRestore() {
     return;
   }
 
-  // 1. Make it reappear in the taskbar
-  try { win.setSkipTaskbar(false); } catch (e) { console.warn('setSkipTaskbar failed:', e); }
+  // 1. Keep it hidden from the taskbar — the app is intentionally off the taskbar at all times.
+  try { win.setSkipTaskbar(true); } catch (e) { console.warn('setSkipTaskbar failed:', e); }
 
   // 2. If the OS minimized it, un-minimize first
   try { if (win.isMinimized()) win.restore(); } catch (e) { console.warn('restore failed:', e); }
@@ -381,13 +381,20 @@ function createTray() {
 }
 
 async function createWindow() {
-  const { width } = screen.getPrimaryDisplay().workAreaSize;
+  const workArea = screen.getPrimaryDisplay().workArea;
+  const winWidth = 700;
+  const winHeight = 700;
+  // Anchor the window inside the primary display work area so it never launches
+  // off-screen on single-monitor Windows setups (where `x: workArea.width`
+  // previously pushed the window past the right edge).
+  const launchX = Math.max(workArea.x, workArea.x + workArea.width - winWidth - 20);
+  const launchY = workArea.y + 10;
   // Create the browser window.
   const window = new BrowserWindow({
-    width: 700,
-    height: 700,
-    x: Math.floor(width), // Position around the center
-    y: 10, // At the top of the screen
+    width: winWidth,
+    height: winHeight,
+    x: launchX,
+    y: launchY,
     //  change to false to use AppBar
     frame: true,
     show: true,
@@ -430,6 +437,9 @@ async function createWindow() {
 
   window.setAlwaysOnTop(true, 'screen-saver');
   window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+
+  // Hide from taskbar (Windows/Linux). On macOS, the dock is hidden in whenReady() via app.dock.hide().
+  try { window.setSkipTaskbar(true); } catch (e) { console.warn('setSkipTaskbar failed:', e); }
   // Hide window from screen capture/sharing.
   // NOTE: This is a no-op on Linux (neither X11 nor Wayland expose an
   // equivalent to Windows' SetWindowDisplayAffinity / macOS sharingType).
@@ -661,6 +671,12 @@ ipcMain.handle(
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+  // Hide from macOS dock so the app launches invisibly — taskbar hide for
+  // Windows/Linux happens on the window via setSkipTaskbar(true).
+  if (process.platform === 'darwin') {
+    try { app.dock?.hide(); } catch (e) { console.warn('app.dock.hide() failed:', e); }
+  }
+
   createWindow();
 
   app.on('activate', () => {

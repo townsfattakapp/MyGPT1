@@ -38,6 +38,10 @@ export interface IElectronAPI {
 
   // Platform info
   getPlatformInfo: () => Promise<{ platform: string; contentProtectionSupported: boolean }>;
+
+  // Zoom
+  getZoomFactor: () => number;
+  setZoomFactor: (factor: number) => void;
 }
 
 declare global {

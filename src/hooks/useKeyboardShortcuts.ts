@@ -22,6 +22,20 @@ export const useKeyboardShortcuts = ({
   onEnterAreaCaptureMode
 }: UseKeyboardShortcutsProps) => {
 
+  // Restore persisted zoom on mount
+  useEffect(() => {
+    // Clear any leftover body zoom from the prior CSS-based approach.
+    try { document.body.style.zoom = ''; } catch {}
+    const saved = parseFloat(localStorage.getItem('appZoom') || '1');
+    if (!isNaN(saved) && saved > 0) {
+      if (window.Main?.setZoomFactor) {
+        window.Main.setZoomFactor(saved);
+      } else {
+        (document.documentElement.style as any).zoom = String(saved);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // console.log('🔑 [DEBUG] Key pressed:', e.key, 'Target:', (e.target as HTMLElement).tagName);
@@ -41,20 +55,51 @@ export const useKeyboardShortcuts = ({
         return;
       }
 
+      // Zoom shortcuts (Ctrl + +/- and Ctrl + 0 to reset). Work even while typing.
+      if (e.ctrlKey || e.metaKey) {
+        const applyZoom = (factor: number) => {
+          const clamped = Math.max(0.4, Math.min(3, +factor.toFixed(2)));
+          if (window.Main?.setZoomFactor) {
+            window.Main.setZoomFactor(clamped);
+          } else {
+            (document.documentElement.style as any).zoom = String(clamped);
+          }
+          localStorage.setItem('appZoom', String(clamped));
+        };
+        const currentZoom = () =>
+          window.Main?.getZoomFactor
+            ? window.Main.getZoomFactor()
+            : parseFloat((document.documentElement.style as any).zoom || '1') || 1;
+
+        if (e.key === '+' || e.key === '=') {
+          e.preventDefault();
+          applyZoom(currentZoom() + 0.1);
+          return;
+        }
+        if (e.key === '-' || e.key === '_') {
+          e.preventDefault();
+          applyZoom(currentZoom() - 0.1);
+          return;
+        }
+        if (e.key === '0') {
+          e.preventDefault();
+          applyZoom(1);
+          return;
+        }
+      }
+
       // Block letter shortcuts if typing
       if (isTyping) return;
 
       const key = e.key.toLowerCase();
 
       if (key === 'l') {
-        if (!isRecording && !isInitializing) {
+        if (isRecording) {
+          console.log('⌨️ [RENDERER] "L" pressed - Stopping recording');
+          onStopRecording();
+        } else if (!isInitializing) {
           console.log('⌨️ [RENDERER] "L" pressed - Starting recording');
           onStartRecording();
-        }
-      } else if (key === 'p') {
-        if (isRecording) {
-            console.log('⌨️ [RENDERER] "P" pressed - Stopping recording');
-            onStopRecording();
         }
       } else if (key === 'q') {
         if (!isProcessingScreenshot) {
