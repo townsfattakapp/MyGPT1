@@ -33,17 +33,17 @@ export const MessageList: React.FC<MessageListProps> = memo(({ messages, loading
                         </div>
                     )}
                     <div
-                        className={`max-w-[85%] rounded-2xl px-5 py-3.5 shadow-md backdrop-blur-sm ${msg.role === 'user'
+                        className={`max-w-[85%] cursor-default rounded-2xl px-5 py-3.5 shadow-md backdrop-blur-sm ${msg.role === 'user'
                             ? 'bg-blue-600 text-white rounded-br-none'
                             : 'bg-gray-800/80 text-gray-100 border border-gray-700/50 rounded-bl-none'
                             }`}
                     >
                         {msg.role === 'user' ? (
-                            <div className="text-[15px] leading-relaxed whitespace-pre-wrap font-medium">
+                            <div className="cursor-default text-[15px] leading-relaxed whitespace-pre-wrap font-medium">
                                 {msg.content}
                             </div>
                         ) : (
-                            <div className="markdown-container">
+                            <div className="markdown-container cursor-default">
                                 {/* 
                    If it's the last message and we are NOT loading anymore, 
                    or if it's not the last message, just show Markdown. 

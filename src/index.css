@@ -29,3 +29,13 @@
     z-index: 10001;
     pointer-events: none;
 }
+
+.markdown-container,
+.markdown-container * {
+    cursor: default;
+}
+
+.markdown-container a,
+.markdown-container button {
+    cursor: pointer;
+}
