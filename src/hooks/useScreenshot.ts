@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { createWorker } from 'tesseract.js';
 
 interface UseScreenshotProps {
@@ -11,49 +11,78 @@ export const useScreenshot = ({ onOCRComplete, onImageCaptured }: UseScreenshotP
   const [screenshotDataUrl, setScreenshotDataUrl] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [isAreaCaptureMode, setIsAreaCaptureMode] = useState(false);
+  const ocrWorkerRef = useRef<Promise<Awaited<ReturnType<typeof createWorker>>> | null>(null);
 
-  const performOCR = useCallback(async (imageDataUrl: string) => {
-    console.log('🔍 Performing OCR...');
-    setIsProcessing(true);
-
-    try {
-      const worker = await createWorker('eng');
-      const ret = await worker.recognize(imageDataUrl);
-      console.log('OCR Text:', ret.data.text);
-
-      await worker.terminate();
-
-      if (ret.data.text && ret.data.text.trim()) {
-        const text = `Screenshot Text:\n${ret.data.text}`;
-        if (onOCRComplete) onOCRComplete(text);
-      } else {
-        console.log('⚠️ No text found in screenshot');
-      }
-    } catch (error) {
-      console.error('OCR Error:', error);
-    } finally {
-      setIsProcessing(false);
+  const getOCRWorker = useCallback(() => {
+    if (!ocrWorkerRef.current) {
+      ocrWorkerRef.current = createWorker('eng').catch((error) => {
+        ocrWorkerRef.current = null;
+        throw error;
+      });
     }
-  }, [onOCRComplete]);
+
+    return ocrWorkerRef.current;
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      const workerPromise = ocrWorkerRef.current;
+      ocrWorkerRef.current = null;
+      workerPromise
+        ?.then((worker) => worker.terminate())
+        .catch((error) => console.error('OCR worker cleanup error:', error));
+    };
+  }, []);
+
+  const performOCR = useCallback(
+    async (imageDataUrl: string) => {
+      console.log('🔍 Performing OCR...');
+      setIsProcessing(true);
+
+      try {
+        const worker = await getOCRWorker();
+        const ret = await worker.recognize(imageDataUrl);
+        console.log('OCR Text:', ret.data.text);
+
+        if (ret.data.text && ret.data.text.trim()) {
+          const text = `Screenshot Text:\n${ret.data.text}`;
+          if (onOCRComplete) onOCRComplete(text);
+        } else {
+          console.log('⚠️ No text found in screenshot');
+        }
+      } catch (error) {
+        console.error('OCR Error:', error);
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [getOCRWorker, onOCRComplete]
+  );
 
   const takeFullScreenScreenshot = useCallback(async () => {
     console.log('📸 Taking screenshot...');
     if (isProcessing) return;
 
     setIsProcessing(true);
+    let stream: MediaStream | null = null;
 
     try {
-      // Get sources
-      const sources = await window.Main.getDesktopSources();
-      const screenSource = sources.find((s: any) => s.name.includes('Screen') || s.name.includes('Entire Screen')) || sources[0];
-
-      if (!screenSource) {
-        console.error('No screen source found');
-        setIsProcessing(false);
+      if (!window.Main?.getDesktopSources) {
+        console.error('Screenshot capture is only available in Electron');
         return;
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
+      // Get sources
+      const sources = await window.Main.getDesktopSources();
+      const screenSource =
+        sources.find((s: any) => s.name.includes('Screen') || s.name.includes('Entire Screen')) || sources[0];
+
+      if (!screenSource) {
+        console.error('No screen source found');
+        return;
+      }
+
+      stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
         video: {
           mandatory: {
@@ -69,28 +98,39 @@ export const useScreenshot = ({ onOCRComplete, onImageCaptured }: UseScreenshotP
 
       const video = document.createElement('video');
       video.srcObject = stream;
-      video.onloadedmetadata = async () => {
-        video.play();
+      video.muted = true;
+      video.playsInline = true;
 
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          stream.getTracks().forEach(track => track.stop());
+      await new Promise<void>((resolve, reject) => {
+        video.onloadedmetadata = () => resolve();
+        video.onerror = () => reject(new Error('Unable to load screen capture stream'));
+      });
 
-          const imageDataUrl = canvas.toDataURL('image/png');
-          console.log('✅ Full screen screenshot captured successfully!');
+      await video.play();
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve());
+      });
 
-          // Default behavior: Perform OCR
-          await performOCR(imageDataUrl);
-        } else {
-          setIsProcessing(false);
-        }
-      };
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        console.error('Unable to create screenshot canvas context');
+        return;
+      }
+
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const imageDataUrl = canvas.toDataURL('image/png');
+      console.log('✅ Full screen screenshot captured successfully!');
+
+      await performOCR(imageDataUrl);
     } catch (error) {
       console.error('Error taking screenshot:', error);
+    } finally {
+      stream?.getTracks().forEach((track) => track.stop());
       setIsProcessing(false);
     }
   }, [isProcessing, performOCR]);
@@ -103,7 +143,8 @@ export const useScreenshot = ({ onOCRComplete, onImageCaptured }: UseScreenshotP
         thumbnailSize: { width: 1920, height: 1080 }
       });
 
-      const screenSource = sources.find((s: any) => s.name.includes('Screen') || s.name.includes('Entire Screen')) || sources[0];
+      const screenSource =
+        sources.find((s: any) => s.name.includes('Screen') || s.name.includes('Entire Screen')) || sources[0];
 
       if (screenSource && screenSource.thumbnail) {
         setScreenshotDataUrl(screenSource.thumbnail);
@@ -132,12 +173,15 @@ export const useScreenshot = ({ onOCRComplete, onImageCaptured }: UseScreenshotP
   }, [screenshotDataUrl]);
 
   // For Area Screenshot component interaction
-  const handleAreaCapture = useCallback((dataUrl: string) => {
-    setIsAreaCaptureMode(false);
-    if (onImageCaptured) {
-      onImageCaptured(dataUrl);
-    }
-  }, [onImageCaptured]);
+  const handleAreaCapture = useCallback(
+    (dataUrl: string) => {
+      setIsAreaCaptureMode(false);
+      if (onImageCaptured) {
+        onImageCaptured(dataUrl);
+      }
+    },
+    [onImageCaptured]
+  );
 
   return {
     isProcessing,

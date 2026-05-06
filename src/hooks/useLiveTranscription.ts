@@ -8,10 +8,33 @@ interface UseRealtimeTranscriptionProps {
   provider?: AIProvider;
 }
 
+const HIGH_ACCURACY_AUDIO_CONSTRAINTS: MediaStreamConstraints = {
+  audio: {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+    channelCount: 1,
+    sampleRate: 48000,
+    sampleSize: 16
+  }
+};
+
+const uint8ArrayToBase64 = (bytes: Uint8Array) => {
+  let binary = '';
+  const chunkSize = 0x8000;
+
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    const chunk = bytes.subarray(offset, offset + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+
+  return btoa(binary);
+};
+
 export const useRealtimeTranscription = ({
   onPartial,
   onFinal,
-  language = 'en-US',
+  language = 'en-IN',
   provider
 }: UseRealtimeTranscriptionProps) => {
   const [isRecording, setIsRecording] = useState(false);
@@ -20,19 +43,20 @@ export const useRealtimeTranscription = ({
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const silentGainRef = useRef<GainNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
   // Browser SpeechRecognition ref (used for non-OpenAI providers)
   const recognitionRef = useRef<any>(null);
+  const lastBrowserPartialRef = useRef('');
 
   const floatTo16BitPCM = (input: Float32Array) => {
     const buffer = new ArrayBuffer(input.length * 2);
     const view = new DataView(buffer);
-    let offset = 0;
-    for (let i = 0; i < input.length; i++, offset += 2) {
-      let sample = Math.max(-1, Math.min(1, input[i]));
-      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
-    }
+    input.forEach((value, index) => {
+      const sample = Math.max(-1, Math.min(1, value));
+      view.setInt16(index * 2, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+    });
     return buffer;
   };
 
@@ -41,8 +65,7 @@ export const useRealtimeTranscription = ({
      Used for Gemini / DeepSeek / Groq
   -----------------------------------------*/
   const startBrowserRecognition = useCallback(() => {
-    const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
       console.error('❌ Browser SpeechRecognition not available. Use Chrome/Edge.');
@@ -54,19 +77,42 @@ export const useRealtimeTranscription = ({
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = language;
+    recognition.maxAlternatives = 1;
 
     recognition.onresult = (event: any) => {
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        const transcript = result[0].transcript;
+      const results = Array.from(
+        { length: event.results.length - event.resultIndex },
+        (_unused, index) => event.results[event.resultIndex + index]
+      );
+
+      results.forEach((result: any) => {
+        const { transcript } = result[0];
         if (result.isFinal) {
-          console.log('✅ SpeechRecognition final:', transcript);
-          onFinal(transcript);
+          const finalTranscript = transcript.trim();
+          const currentPartial = lastBrowserPartialRef.current;
+          const finalDelta = transcript.startsWith(currentPartial)
+            ? transcript.slice(currentPartial.length)
+            : transcript;
+
+          if (finalDelta.trim()) {
+            onPartial(finalDelta);
+          }
+
+          lastBrowserPartialRef.current = '';
+          console.log('✅ SpeechRecognition final:', finalTranscript);
+          if (finalTranscript) onFinal(finalTranscript);
         } else {
-          console.log('🔤 SpeechRecognition partial:', transcript);
-          onPartial(transcript);
+          const currentPartial = lastBrowserPartialRef.current;
+          const delta = transcript.startsWith(currentPartial) ? transcript.slice(currentPartial.length) : transcript;
+
+          lastBrowserPartialRef.current = transcript;
+
+          if (delta.trim()) {
+            console.log('🔤 SpeechRecognition partial:', delta);
+            onPartial(delta);
+          }
         }
-      }
+      });
     };
 
     recognition.onerror = (event: any) => {
@@ -89,6 +135,7 @@ export const useRealtimeTranscription = ({
     };
 
     recognitionRef.current = recognition;
+    lastBrowserPartialRef.current = '';
     recognition.start();
     setIsRecording(true);
     console.log('✅ Browser SpeechRecognition started');
@@ -108,7 +155,7 @@ export const useRealtimeTranscription = ({
     let stream: MediaStream;
     try {
       console.log('🎤 Requesting microphone access...');
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream = await navigator.mediaDevices.getUserMedia(HIGH_ACCURACY_AUDIO_CONSTRAINTS);
       streamRef.current = stream;
       console.log('✅ Microphone accessed');
     } catch (err) {
@@ -116,10 +163,11 @@ export const useRealtimeTranscription = ({
       return;
     }
 
-    const ws = new WebSocket(
-      'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17',
-      ['realtime', 'openai-insecure-api-key.' + apiKey, 'openai-beta.realtime-v1']
-    );
+    const ws = new WebSocket('wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17', [
+      'realtime',
+      `openai-insecure-api-key.${apiKey}`,
+      'openai-beta.realtime-v1'
+    ]);
 
     wsRef.current = ws;
 
@@ -132,10 +180,15 @@ export const useRealtimeTranscription = ({
 
       const source = audioContext.createMediaStreamSource(stream);
       const processor = audioContext.createScriptProcessor(1024, 1, 1);
+      const silentGain = audioContext.createGain();
+      silentGain.gain.value = 0;
+
       processorRef.current = processor;
+      silentGainRef.current = silentGain;
 
       source.connect(processor);
-      processor.connect(audioContext.destination);
+      processor.connect(silentGain);
+      silentGain.connect(audioContext.destination);
 
       let audioBuffer: Int16Array[] = [];
       let lastSendTime = Date.now();
@@ -157,13 +210,13 @@ export const useRealtimeTranscription = ({
           const totalLength = audioBuffer.reduce((sum, arr) => sum + arr.length, 0);
           const combined = new Int16Array(totalLength);
           let offset = 0;
-          for (const chunk of audioBuffer) {
+          audioBuffer.forEach((chunk) => {
             combined.set(chunk, offset);
             offset += chunk.length;
-          }
+          });
 
           const uint8Array = new Uint8Array(combined.buffer);
-          const base64Audio = btoa(String.fromCharCode(...uint8Array));
+          const base64Audio = uint8ArrayToBase64(uint8Array);
 
           ws.send(JSON.stringify({ type: 'input_audio_buffer.append', audio: base64Audio }));
 
@@ -181,9 +234,9 @@ export const useRealtimeTranscription = ({
           input_audio_transcription: { model: 'whisper-1' },
           turn_detection: {
             type: 'server_vad',
-            threshold: 0.45,
-            prefix_padding_ms: 0,
-            silence_duration_ms: 0
+            threshold: 0.5,
+            prefix_padding_ms: 300,
+            silence_duration_ms: 700
           }
         }
       };
@@ -207,6 +260,8 @@ export const useRealtimeTranscription = ({
             break;
           case 'error':
             console.error('❌ Server Error:', msg.error);
+            break;
+          default:
             break;
         }
       } catch (e) {
@@ -250,6 +305,7 @@ export const useRealtimeTranscription = ({
 
     // Stop OpenAI Realtime path
     processorRef.current?.disconnect();
+    silentGainRef.current?.disconnect();
     audioContextRef.current?.close();
     streamRef.current?.getTracks().forEach((t) => t.stop());
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -257,9 +313,11 @@ export const useRealtimeTranscription = ({
     }
 
     processorRef.current = null;
+    silentGainRef.current = null;
     audioContextRef.current = null;
     streamRef.current = null;
     wsRef.current = null;
+    lastBrowserPartialRef.current = '';
 
     setIsRecording(false);
   }, []);

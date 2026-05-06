@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 interface UseKeyboardShortcutsProps {
   isRecording: boolean;
   isInitializing: boolean;
+  isLiveRecording: boolean;
   isProcessingScreenshot: boolean;
   isAreaCaptureMode: boolean;
   onStartRecording: () => void;
@@ -14,6 +15,7 @@ interface UseKeyboardShortcutsProps {
 export const useKeyboardShortcuts = ({
   isRecording,
   isInitializing,
+  isLiveRecording,
   isProcessingScreenshot,
   isAreaCaptureMode,
   onStartRecording,
@@ -21,13 +23,16 @@ export const useKeyboardShortcuts = ({
   onTakeScreenshot,
   onEnterAreaCaptureMode
 }: UseKeyboardShortcutsProps) => {
-
   // Restore persisted zoom on mount
   useEffect(() => {
     // Clear any leftover body zoom from the prior CSS-based approach.
-    try { document.body.style.zoom = ''; } catch {}
+    try {
+      document.body.style.zoom = '';
+    } catch {
+      // Ignore zoom cleanup failures in older WebViews.
+    }
     const saved = parseFloat(localStorage.getItem('appZoom') || '1');
-    if (!isNaN(saved) && saved > 0) {
+    if (!Number.isNaN(saved) && saved > 0) {
       if (window.Main?.setZoomFactor) {
         window.Main.setZoomFactor(saved);
       } else {
@@ -41,16 +46,16 @@ export const useKeyboardShortcuts = ({
       // console.log('🔑 [DEBUG] Key pressed:', e.key, 'Target:', (e.target as HTMLElement).tagName);
 
       const isTyping = ['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName);
-      
+
       // Window Movement (Arrow Keys)
       if (e.key.startsWith('Arrow')) {
         const direction = e.key.replace('Arrow', '').toLowerCase();
         // console.log(`🔑 [DEBUG] Arrow${direction} detected`);
-        
+
         if (window.Main?.handleDirection) {
-           e.preventDefault();
-           window.Main.handleDirection(direction);
-           // console.log(`⌨️ [RENDERER] Arrow ${direction} - Moving window`);
+          e.preventDefault();
+          window.Main.handleDirection(direction);
+          // console.log(`⌨️ [RENDERER] Arrow ${direction} - Moving window`);
         }
         return;
       }
@@ -97,19 +102,19 @@ export const useKeyboardShortcuts = ({
         if (isRecording) {
           console.log('⌨️ [RENDERER] "L" pressed - Stopping recording');
           onStopRecording();
-        } else if (!isInitializing) {
+        } else if (!isInitializing && !isLiveRecording) {
           console.log('⌨️ [RENDERER] "L" pressed - Starting recording');
           onStartRecording();
         }
       } else if (key === 'q') {
         if (!isProcessingScreenshot) {
-            console.log('⌨️ [RENDERER] "Q" pressed - Taking screenshot');
-            onTakeScreenshot();
+          console.log('⌨️ [RENDERER] "Q" pressed - Taking screenshot');
+          onTakeScreenshot();
         }
       } else if (key === 's') {
         if (!isAreaCaptureMode && !isProcessingScreenshot) {
-            console.log('⌨️ [RENDERER] "S" pressed - Entering area capture mode');
-            onEnterAreaCaptureMode();
+          console.log('⌨️ [RENDERER] "S" pressed - Entering area capture mode');
+          onEnterAreaCaptureMode();
         }
       }
     };
@@ -119,13 +124,14 @@ export const useKeyboardShortcuts = ({
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [
-    isRecording, 
-    isInitializing, 
-    isProcessingScreenshot, 
-    isAreaCaptureMode, 
-    onStartRecording, 
-    onStopRecording, 
-    onTakeScreenshot, 
+    isRecording,
+    isInitializing,
+    isLiveRecording,
+    isProcessingScreenshot,
+    isAreaCaptureMode,
+    onStartRecording,
+    onStopRecording,
+    onTakeScreenshot,
     onEnterAreaCaptureMode
   ]);
 };

@@ -63,6 +63,7 @@ export default function ChatUI() {
     stop: stopLive
   } = useRealtimeTranscription({
     provider: currentProvider,
+    language: 'en-IN',
     onPartial: (delta) => {
       console.log('🎯 [ChatUI] onPartial called with delta:', delta);
       // Only update the live transcript display, not the input box
@@ -72,15 +73,15 @@ export default function ChatUI() {
     onFinal: (text) => {
       console.log('🎯 [ChatUI] onFinal called with text:', text);
       // Clear live transcript display after a short delay or immediately when segment finishes
-      // setLiveTranscript(''); 
+      // setLiveTranscript('');
       // Actually, let's keep it until the next segment or stop?
-      // For now, allow it to accumulate or clear? 
+      // For now, allow it to accumulate or clear?
       // If we clear it here, the "Live UI" might flicker empty between sentences.
       // Let's clear it only when recording stops?
       // Or maybe just let it grow.
-      // Ideally reset it when `start` is called? 
+      // Ideally reset it when `start` is called?
       // But `start` is called once for the session.
-      // Let's reset `liveTranscript` when silence is detected? 
+      // Let's reset `liveTranscript` when silence is detected?
       // Simplified: Just accumulate it for the "current thought" visualization.
     }
   });
@@ -91,6 +92,8 @@ export default function ChatUI() {
       const timer = setTimeout(() => setLiveTranscript(''), 1000); // clear after 1s
       return () => clearTimeout(timer);
     }
+
+    return undefined;
   }, [isLive]);
 
   // 3. Screenshot Logic
@@ -98,10 +101,8 @@ export default function ChatUI() {
     isProcessing: isProcessingScreenshot,
     isAreaCaptureMode,
     setIsAreaCaptureMode,
-    showModal: showScreenshotModal,
     screenshotDataUrl,
     takeFullScreenScreenshot: takeScreenshot,
-    captureForDownload: handleDownloadScreenshot,
     downloadScreenshot,
     closeScreenshotModal,
     handleAreaCapture
@@ -110,7 +111,7 @@ export default function ChatUI() {
       handleSend(text);
     },
     onImageCaptured: (dataUrl) => {
-      // Wait a tick ensures UI is unmounted/ready? 
+      // Wait a tick ensures UI is unmounted/ready?
       // Original code had a explicit setTimeout(..., 0) inside the component callback.
       // The hook just passes dataUrl back.
       handleSendImage(dataUrl);
@@ -121,6 +122,7 @@ export default function ChatUI() {
   useKeyboardShortcuts({
     isRecording: isRecordingSystem,
     isInitializing,
+    isLiveRecording: isLive,
     isProcessingScreenshot,
     isAreaCaptureMode,
     onStartRecording: startSystemRecording,
@@ -136,12 +138,11 @@ export default function ChatUI() {
 
   return (
     <div className="flex flex-col h-screen w-full bg-gray-900/90 text-white font-sans antialiased overflow-hidden">
-
       {/* Area Screenshot Overlay */}
       {isAreaCaptureMode && (
         <AreaScreenshot
           onCapture={(blob) => {
-            console.log("📸 [ChatUI] Area capture received. Blob size:", blob.size);
+            console.log('📸 [ChatUI] Area capture received. Blob size:', blob.size);
             // Process blob to dataURL
             const reader = new FileReader();
             reader.onloadend = () => {
@@ -151,7 +152,7 @@ export default function ChatUI() {
             reader.readAsDataURL(blob);
           }}
           onCancel={() => {
-            console.log("📸 [ChatUI] Area capture cancelled");
+            console.log('📸 [ChatUI] Area capture cancelled');
             setIsAreaCaptureMode(false);
           }}
         />
@@ -165,11 +166,7 @@ export default function ChatUI() {
       />
 
       {/* Live Transcription Modal */}
-      <LiveTranscriptionModal
-        isVisible={isLive}
-        transcript={liveTranscript}
-        onClose={stopLive}
-      />
+      <LiveTranscriptionModal isVisible={isLive} transcript={liveTranscript} onClose={stopLive} />
 
       {/* Profile Editor Modal */}
       <ProfileEditorModal
@@ -191,11 +188,7 @@ export default function ChatUI() {
       />
 
       {/* Messages */}
-      <MessageList
-        messages={messages}
-        loading={loading}
-        messagesEndRef={messagesEndRef}
-      />
+      <MessageList messages={messages} loading={loading} messagesEndRef={messagesEndRef} />
 
       {/* Input & Controls */}
       <InputArea

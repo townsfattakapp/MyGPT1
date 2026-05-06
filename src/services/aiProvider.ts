@@ -1,5 +1,7 @@
+/* eslint-disable class-methods-use-this, no-restricted-syntax */
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import OpenAI from 'openai';
+import { getSelectedGroqApiKey, withGroqFallback } from '../utils/groqKeys';
 
 export type AIProvider = 'openai' | 'deepseek' | 'gemini' | 'groq';
 
@@ -55,7 +57,9 @@ const PROVIDER_CONFIGS = {
 
 export class AIProviderManager {
   private config: AIConfig;
+
   private openaiClient: OpenAI | null = null;
+
   private geminiClient: GoogleGenerativeAI | null = null;
 
   constructor(providerOverride?: AIProvider) {
@@ -85,7 +89,7 @@ export class AIProviderManager {
       },
       groq: {
         provider: 'groq' as const,
-        apiKey: import.meta.env.VITE_GROQ_API_KEY || '',
+        apiKey: getSelectedGroqApiKey(),
         model: PROVIDER_CONFIGS.groq.models.text
       }
     };
@@ -95,16 +99,30 @@ export class AIProviderManager {
 
   private initializeClients() {
     if (this.config.provider === 'openai' || this.config.provider === 'deepseek' || this.config.provider === 'groq') {
-      this.openaiClient = new OpenAI({
-        apiKey: this.config.apiKey,
-        baseURL: PROVIDER_CONFIGS[this.config.provider].baseURL,
-        dangerouslyAllowBrowser: true
-      });
+      this.openaiClient = this.createOpenAICompatibleClient();
     }
 
     if (this.config.provider === 'gemini') {
       this.geminiClient = new GoogleGenerativeAI(this.config.apiKey);
     }
+  }
+
+  private createOpenAICompatibleClient(apiKey = this.config.apiKey) {
+    const providerConfig = PROVIDER_CONFIGS[this.config.provider];
+    if (!('baseURL' in providerConfig)) {
+      throw new Error(`${this.config.provider} is not OpenAI-compatible`);
+    }
+
+    return new OpenAI({
+      apiKey,
+      baseURL: providerConfig.baseURL,
+      dangerouslyAllowBrowser: true
+    });
+  }
+
+  private getOpenAICompatibleClient() {
+    if (!this.openaiClient) throw new Error('OpenAI-compatible client not initialized');
+    return this.openaiClient;
   }
 
   async *chat(
@@ -120,6 +138,8 @@ export class AIProviderManager {
         break;
       case 'gemini':
         yield* this.handleGeminiChat(messages, systemPrompt, onChunk);
+        break;
+      default:
         break;
     }
   }
@@ -137,13 +157,20 @@ export class AIProviderManager {
       const supportsVisionInChat = this.config.provider === 'openai';
       const formattedMessages = this.formatMessagesForOpenAI(messages, systemPrompt, supportsVisionInChat);
 
-      const stream = await this.openaiClient.chat.completions.create({
+      const requestOptions = {
         model: this.config.model!,
         messages: formattedMessages as any, // Type assertion for compatibility
-        stream: true,
+        stream: true as const,
         temperature: 0.7,
         max_tokens: 2000
-      });
+      };
+
+      const stream =
+        this.config.provider === 'groq'
+          ? await withGroqFallback((apiKey) =>
+              this.createOpenAICompatibleClient(apiKey).chat.completions.create(requestOptions)
+            )
+          : await this.getOpenAICompatibleClient().chat.completions.create(requestOptions);
 
       let fullContent = '';
       for await (const chunk of stream) {
@@ -197,9 +224,19 @@ export class AIProviderManager {
   async processImage(imageDataUrl: string, prompt: string, systemPrompt?: string): Promise<string> {
     switch (this.config.provider) {
       case 'openai':
-        return this.processImageWithOpenAICompat(imageDataUrl, prompt, PROVIDER_CONFIGS.openai.models.vision, systemPrompt);
+        return this.processImageWithOpenAICompat(
+          imageDataUrl,
+          prompt,
+          PROVIDER_CONFIGS.openai.models.vision,
+          systemPrompt
+        );
       case 'groq':
-        return this.processImageWithOpenAICompat(imageDataUrl, prompt, PROVIDER_CONFIGS.groq.models.vision, systemPrompt);
+        return this.processImageWithOpenAICompat(
+          imageDataUrl,
+          prompt,
+          PROVIDER_CONFIGS.groq.models.vision,
+          systemPrompt
+        );
       case 'gemini':
         return this.processImageWithGemini(imageDataUrl, prompt, systemPrompt);
       case 'deepseek':
@@ -215,8 +252,6 @@ export class AIProviderManager {
     model: string,
     systemPrompt?: string
   ): Promise<string> {
-    if (!this.openaiClient) throw new Error('OpenAI-compatible client not initialized');
-
     try {
       const messages: any[] = [];
       if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
@@ -228,11 +263,18 @@ export class AIProviderManager {
         ]
       });
 
-      const response = await this.openaiClient.chat.completions.create({
+      const requestOptions = {
         model,
         messages,
         max_tokens: 2000
-      });
+      };
+
+      const response =
+        this.config.provider === 'groq'
+          ? await withGroqFallback((apiKey) =>
+              this.createOpenAICompatibleClient(apiKey).chat.completions.create(requestOptions)
+            )
+          : await this.getOpenAICompatibleClient().chat.completions.create(requestOptions);
 
       return response.choices[0]?.message?.content || 'Error processing image';
     } catch (error) {
@@ -259,7 +301,7 @@ export class AIProviderManager {
         {
           inlineData: {
             data: imageData,
-            mimeType: mimeType
+            mimeType
           }
         }
       ]);
@@ -271,11 +313,7 @@ export class AIProviderManager {
     }
   }
 
-  private formatMessagesForOpenAI(
-    messages: ChatMessage[],
-    systemPrompt: string,
-    supportsVision: boolean = true
-  ): any[] {
+  private formatMessagesForOpenAI(messages: ChatMessage[], systemPrompt: string, supportsVision = true): any[] {
     const formatted: any[] = [{ role: 'system', content: systemPrompt }];
 
     for (const msg of messages) {
@@ -295,8 +333,7 @@ export class AIProviderManager {
         formatted.push({
           role: msg.role,
           content:
-            msg.content ||
-            (msg.image ? '[A screenshot was shared earlier — not visible to this text-only model.]' : '')
+            msg.content || (msg.image ? '[A screenshot was shared earlier — not visible to this text-only model.]' : '')
         });
       }
     }
@@ -319,7 +356,7 @@ export class AIProviderManager {
         formatted.push({
           inlineData: {
             data: imageData,
-            mimeType: mimeType
+            mimeType
           }
         });
       } else {
