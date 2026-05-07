@@ -42,8 +42,8 @@ const PROVIDER_CONFIGS = {
   },
   gemini: {
     models: {
-      text: 'gemini-2.5-flash',
-      vision: 'gemini-2.5-flash'
+      text: 'gemini-2.5-flash-lite',
+      vision: 'gemini-2.5-flash-lite'
     }
   },
   groq: {
@@ -53,6 +53,41 @@ const PROVIDER_CONFIGS = {
       vision: 'meta-llama/llama-4-scout-17b-16e-instruct'
     }
   }
+};
+
+const readNumberEnv = (value: string | undefined, fallback: number): number => {
+  if (!value?.trim()) return fallback;
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const getGeminiThinkingBudget = (model: string): number | undefined => {
+  const rawBudget = import.meta.env.VITE_GEMINI_THINKING_BUDGET?.trim();
+  if (rawBudget?.toLowerCase() === 'auto') return -1;
+
+  if (rawBudget) {
+    const parsed = Number(rawBudget);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  // Gemini 2.5 Flash models use dynamic thinking by default, which improves
+  // reasoning but can delay the first token. Default to low-latency mode.
+  return model.includes('gemini-2.5-flash') ? 0 : undefined;
+};
+
+const getGeminiGenerationConfig = (model: string) => {
+  const config: any = {
+    maxOutputTokens: readNumberEnv(import.meta.env.VITE_GEMINI_MAX_OUTPUT_TOKENS, 3072),
+    temperature: readNumberEnv(import.meta.env.VITE_GEMINI_TEMPERATURE, 0.45)
+  };
+
+  const thinkingBudget = getGeminiThinkingBudget(model);
+  if (thinkingBudget !== undefined) {
+    config.thinkingConfig = { thinkingBudget };
+  }
+
+  return config;
 };
 
 export class AIProviderManager {
@@ -196,10 +231,12 @@ export class AIProviderManager {
     if (!this.geminiClient) throw new Error('Gemini client not initialized');
 
     try {
+      const modelName = this.config.model!;
       const model = this.geminiClient.getGenerativeModel({
-        model: this.config.model!,
-        systemInstruction: systemPrompt
-      });
+        model: modelName,
+        systemInstruction: systemPrompt,
+        generationConfig: getGeminiGenerationConfig(modelName)
+      } as any);
 
       const formattedMessages = this.formatMessagesForGemini(messages);
 
@@ -287,10 +324,12 @@ export class AIProviderManager {
     if (!this.geminiClient) throw new Error('Gemini client not initialized');
 
     try {
+      const modelName = import.meta.env.VITE_GEMINI_MODEL || PROVIDER_CONFIGS.gemini.models.vision;
       const model = this.geminiClient.getGenerativeModel({
-        model: import.meta.env.VITE_GEMINI_MODEL || PROVIDER_CONFIGS.gemini.models.vision,
-        ...(systemPrompt ? { systemInstruction: systemPrompt } : {})
-      });
+        model: modelName,
+        ...(systemPrompt ? { systemInstruction: systemPrompt } : {}),
+        generationConfig: getGeminiGenerationConfig(modelName)
+      } as any);
 
       // Convert data URL to proper format for Gemini
       const imageData = imageDataUrl.split(',')[1];
@@ -346,19 +385,11 @@ export class AIProviderManager {
 
     for (const msg of messages) {
       if (msg.image) {
-        // Handle image messages for Gemini
-        const imageData = msg.image.split(',')[1];
-        const mimeType = msg.image.split(';')[0].split(':')[1];
-
-        formatted.push({
-          text: msg.content || 'Please analyze this image:'
-        });
-        formatted.push({
-          inlineData: {
-            data: imageData,
-            mimeType
-          }
-        });
+        // Old screenshots can be huge. The image is already processed through
+        // processImageWithGemini, so keep later chat requests lightweight.
+        formatted.push(
+          msg.content || '[A screenshot was shared earlier. Use the previous assistant analysis for context.]'
+        );
       } else {
         formatted.push(msg.content);
       }

@@ -46,8 +46,13 @@ VITE_DEEPSEEK_API_KEY=sk-your-deepseek-key-here
 
 # Gemini Configuration (if using Gemini)
 VITE_GEMINI_API_KEY=your-gemini-api-key-here
-# Optional: defaults to gemini-2.5-flash
-VITE_GEMINI_MODEL=gemini-2.5-flash
+# Optional: fastest default; use gemini-2.5-flash for higher-quality reasoning
+VITE_GEMINI_MODEL=gemini-2.5-flash-lite
+# Optional: 0 is fastest, auto enables dynamic thinking for harder reasoning
+VITE_GEMINI_THINKING_BUDGET=0
+# Optional: keeps Gemini chat payloads lightweight
+VITE_GEMINI_HISTORY_LIMIT=8
+VITE_GEMINI_MAX_OUTPUT_TOKENS=3072
 
 # Optional: Custom system prompt
 VITE_SYSTEM_PROMPT=Your custom system prompt here

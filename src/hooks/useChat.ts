@@ -7,6 +7,24 @@ interface Message {
   image?: string;
 }
 
+const DEFAULT_GEMINI_HISTORY_LIMIT = 8;
+
+const getGeminiHistoryLimit = () => {
+  const rawLimit = import.meta.env.VITE_GEMINI_HISTORY_LIMIT?.trim();
+  if (!rawLimit) return DEFAULT_GEMINI_HISTORY_LIMIT;
+
+  const parsed = Number(rawLimit);
+  return Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : DEFAULT_GEMINI_HISTORY_LIMIT;
+};
+
+const trimGeminiRequestMessages = (requestMessages: Message[]) => {
+  const historyLimit = getGeminiHistoryLimit();
+  if (historyLimit === 0 || requestMessages.length <= historyLimit) return requestMessages;
+
+  const trimmed = requestMessages.slice(-historyLimit);
+  return trimmed[0]?.role === 'assistant' ? trimmed.slice(1) : trimmed;
+};
+
 const DEFAULT_USER_PROFILE = `
 Full Stack Developer with 3+ years of experience at LTTS, specializing in React, Next.js, TypeScript, Node.js, and scalable applications.
 Proven ability to build high-performance web apps, integrate secure APIs, and deliver AI-enhanced solutions.
@@ -620,8 +638,12 @@ Keep the tone natural, readable from the screen, and interview-friendly.`;
 
         let assistantMessage = '';
 
+        const requestMessages = messages.concat([{ role: 'user', content: messageText }]);
+        const providerMessages =
+          currentProvider === 'gemini' ? trimGeminiRequestMessages(requestMessages) : requestMessages;
+
         const chatGenerator = aiManagerRef.current.chat(
-          messages.concat([{ role: 'user', content: messageText }]),
+          providerMessages,
           systemPrompt,
           (chunk) => {
             assistantMessage += chunk;
@@ -657,7 +679,7 @@ Keep the tone natural, readable from the screen, and interview-friendly.`;
         abortControllerRef.current = null;
       }
     },
-    [input, messages, systemPrompt]
+    [currentProvider, input, messages, systemPrompt]
   );
 
   const switchProvider = useCallback((provider: AIProvider) => {
