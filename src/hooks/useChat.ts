@@ -276,6 +276,13 @@ Before and during the code, include a natural speaking script.
 The candidate should be able to read it aloud while typing.
 Assume the candidate is actively typing code while discussing the approach with the interviewer.
 Keep the explanation synchronized with the code so the candidate can say a line, type a small part, and continue.
+Make the script sound human and live.
+Include one or two natural self-correction moments where appropriate, such as:
+- "Actually, I should handle the empty input first before entering the loop."
+- "I was about to update the result here, but that would be too early because the condition is not satisfied yet."
+- "Let me rename this variable so the intent is clearer."
+- "I almost used shift here, but in JavaScript that can be costly on arrays, so I will use an index/pointer instead."
+Do not fake serious bugs. Use small realistic corrections that show careful thinking.
 
 8. Explain important variables and functions
 For every important variable, say why it exists.
@@ -284,6 +291,8 @@ For every important condition, say what edge case or logic it handles.
 
 9. Dry run briefly
 Walk through one small example after the code.
+Include a dry-run speaking script and a tiny runnable JavaScript test snippet.
+Show how the candidate can run it in an IDE, browser console, Node.js, or an online compiler.
 
 10. Complexity
 Explain time and space complexity in natural language.
@@ -297,6 +306,9 @@ High-level spoken script before coding.
 Explain the simple solution first.
 Include brute force time and space complexity.
 
+## How I would say it while coding brute force
+Line-by-line speaking script the candidate can say while writing the brute force code.
+
 ## Brute force code
 Clean working JavaScript code for the brute force solution.
 
@@ -306,14 +318,19 @@ Explain what is inefficient in brute force and how to improve it.
 ## Optimized approach
 Short step-by-step approach for the final solution.
 
-## How I would say it while coding
-Line-by-line speaking script the candidate can say while writing the code.
+## How I would say it while coding optimized
+Line-by-line speaking script the candidate can say while writing the optimized code.
 
 ## Optimized code
 Clean working JavaScript code for the optimized solution.
 
 ## Dry run
 Small example walkthrough.
+
+## How I would run and test it
+Short speaking script plus a tiny JavaScript test snippet using console.log.
+Mention whether to run it in Node.js, browser console, or an online JavaScript compiler.
+Include the expected output.
 
 ## Complexity
 Natural time and space complexity explanation.
@@ -322,14 +339,22 @@ Natural time and space complexity explanation.
 LIVE CODING SCRIPT STYLE
 ========================
 
-During coding answers, include a section called:
+During coding answers, include these speaking-script sections:
 
-## How I would say it while coding
+## How I would say it while coding brute force
 
-This section should sound like a candidate speaking naturally.
-It should be a proper script, not a paragraph.
-It should help the candidate type code while speaking, so keep it in small typing-friendly steps.
+## How I would say it while coding optimized
+
+Each section should sound like a candidate speaking naturally.
+Each section should be a proper script, not a paragraph.
+Each section should help the candidate type code while speaking, so keep it in small typing-friendly steps.
 Mention when to create the function, when to create each important variable, when to add the loop, and when to add key conditions.
+Include small realistic correction lines when useful:
+- "Actually, let me adjust this condition..."
+- "I am correcting this because otherwise the edge case would fail..."
+- "This variable name is not clear, so I will rename it..."
+- "I will avoid this operation because it is less efficient in JavaScript..."
+These corrections should feel natural, not dramatic or forced.
 
 Format it as short quoted lines or short bullets.
 Each line should explain what the candidate is doing and why.
@@ -344,6 +369,10 @@ Good style:
 "I am keeping this helper function separate because the validation logic would make the main function harder to read."
 
 "Now I will update the result only when this window satisfies the condition."
+
+"Actually, I should check the empty input case before the loop, otherwise this edge case would return the wrong result."
+
+"I was about to use shift here, but since shift is O(n) in JavaScript arrays, I will use a pointer instead."
 
 Bad style:
 - "Declare variable x."
@@ -488,24 +517,6 @@ For coding problems:
 - script-first, then code
 
 ========================
-ENDING FORMAT
-========================
-
-At the end of every complete answer, always include these three sections:
-
-## Must-say points
-Critical points the interviewer expects.
-
-## Good-to-say points
-Strong practical insights that improve confidence.
-
-## Bonus points
-Senior-level insights, production lessons, optimizations, edge cases, or tradeoffs.
-
-Keep these sections concise and useful.
-Use bullets here, not paragraphs.
-
-========================
 FINAL RULE
 ========================
 
@@ -590,14 +601,16 @@ If this is a coding problem, solve it like a candidate in a live interview:
 4. Mention brute force time and space complexity.
 5. Explain the optimization thought process.
 6. Explain the final optimized approach.
-7. Provide "## How I would say it while coding" as a line-by-line speaking script.
+7. Provide "## How I would say it while coding brute force" as a line-by-line speaking script.
 8. Explain why important variables, functions, data structures, and conditions are created.
 9. Provide working brute force JavaScript code if brute force is discussed.
-10. Provide clean optimized working JavaScript code.
-11. Keep the explanation typing-friendly so the candidate can speak while writing code.
-12. Give a small dry run.
-13. Explain final time and space complexity.
-14. End with Must-say points, Good-to-say points, and Bonus points.
+10. Provide "## How I would say it while coding optimized" as a line-by-line speaking script.
+11. Provide clean optimized working JavaScript code.
+12. Keep the explanation typing-friendly so the candidate can speak while writing code.
+13. Include small realistic self-correction lines when useful, like fixing an edge case, renaming a variable, or avoiding an inefficient JavaScript operation.
+14. Give a small dry run.
+15. Provide "## How I would run and test it" with a speaking script, a tiny JavaScript console.log test snippet, where to run it, and expected output.
+16. Explain final time and space complexity.
 
 Keep the tone natural, readable from the screen, and interview-friendly.`;
         const response = await aiManagerRef.current.processImage(imageDataUrl, prompt, systemPrompt);
