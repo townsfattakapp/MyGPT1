@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Selecto from 'react-selecto';
+import { X } from 'lucide-react';
 
 type Rect = { x: number; y: number; width: number; height: number };
 
@@ -202,18 +203,18 @@ export function AreaScreenshot({ onCapture, onCancel }: { onCapture: (blob: Blob
 
   if (!image) {
     return (
-      <div className="fixed inset-0 z-[9999] bg-black/80 flex flex-col items-center justify-center text-white backdrop-blur-sm">
-        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-6 shadow-[0_0_15px_rgba(59,130,246,0.5)]" />
-        <p className="text-xl font-semibold mb-8 tracking-wide animate-pulse">Initializing Screen Capture...</p>
+      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[rgba(16,17,14,0.88)] text-[var(--matte-text)] backdrop-blur-sm">
+        <div className="mb-6 h-12 w-12 animate-spin rounded-full border-4 border-[var(--matte-jade)] border-t-transparent" />
+        <p className="mb-8 text-lg font-semibold tracking-wide text-[var(--matte-text-soft)]">Initializing Screen Capture...</p>
 
         <button
           onClick={() => {
             setIsClosedExternally(true);
             onCancel();
           }}
-          className="px-8 py-3 bg-red-600/20 hover:bg-red-600 border border-red-500/50 rounded-2xl transition-all duration-300 flex items-center gap-3 group"
+          className="header-chip is-danger"
         >
-          <span className="text-xl group-hover:rotate-90 transition-transform duration-300">✕</span>
+          <X size={15} />
           <span className="font-medium">Cancel Capture</span>
         </button>
       </div>
@@ -221,15 +222,15 @@ export function AreaScreenshot({ onCapture, onCancel }: { onCapture: (blob: Blob
   }
 
   return (
-    <div className="area-screenshot-capture fixed inset-0 z-[9999] bg-black cursor-default overflow-hidden touch-none select-none">
+    <div className="area-screenshot-capture fixed inset-0 z-[9999] cursor-default select-none overflow-hidden bg-black touch-none">
       <img
         src={image.src}
         alt="Screen Capture"
-        className="absolute inset-0 w-full h-full object-fill pointer-events-none select-none"
+        className="pointer-events-none absolute inset-0 h-full w-full select-none object-fill"
       />
 
       {/* Overlay to dim the unselected area */}
-      <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+      <div className="pointer-events-none absolute inset-0 bg-black/48" />
 
       {!isCapturing && (
         <Selecto
@@ -250,8 +251,8 @@ export function AreaScreenshot({ onCapture, onCancel }: { onCapture: (blob: Blob
 
       {/* Instructions */}
 
-      <div className="absolute top-4 left-4 bg-black/60 text-white px-4 py-2 rounded-xl text-sm font-medium backdrop-blur-md border border-white/10">
-        Press <span className="text-yellow-400 font-bold">Esc</span> to cancel
+      <div className="header-chip absolute left-4 top-4 bg-[rgba(16,17,14,0.74)] backdrop-blur-md">
+        Drag to select an area
       </div>
 
       <button
@@ -259,9 +260,10 @@ export function AreaScreenshot({ onCapture, onCancel }: { onCapture: (blob: Blob
           setIsClosedExternally(true);
           onCancel();
         }}
-        className="absolute top-4 right-4 bg-red-600/20 text-white w-10 h-10 rounded-xl flex items-center justify-center hover:bg-red-600 transition-all backdrop-blur-md border border-red-500/30 group"
+        className="tool-button danger absolute right-4 top-4 backdrop-blur-md"
+        title="Cancel capture"
       >
-        <span className="text-xl group-hover:scale-110 transition-transform">✕</span>
+        <X size={18} />
       </button>
     </div>
   );

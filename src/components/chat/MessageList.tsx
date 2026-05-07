@@ -1,6 +1,5 @@
 import React, { memo } from 'react';
 import MarkdownPreview from '@uiw/react-markdown-preview';
-import TypingEffect from '../TypingEffect';
 import TypeLoading from '../TypeLoading';
 
 interface Message {
@@ -17,7 +16,7 @@ interface MessageListProps {
 
 export const MessageList: React.FC<MessageListProps> = memo(({ messages, loading, messagesEndRef }) => {
     return (
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6 custom-scrollbar scroll-smooth">
+        <div className="custom-scrollbar flex-1 space-y-5 overflow-y-auto px-3 py-4 scroll-smooth sm:px-4">
             {messages.map((msg, idx) => (
                 <div
                     key={idx}
@@ -28,29 +27,22 @@ export const MessageList: React.FC<MessageListProps> = memo(({ messages, loading
                             <img
                                 src={msg.image}
                                 alt="User upload"
-                                className="rounded-lg max-h-60 border border-gray-700 shadow-lg"
+                                className="max-h-60 rounded-lg border border-[var(--matte-border)] shadow-lg"
                             />
                         </div>
                     )}
                     <div
-                        className={`max-w-[85%] cursor-default rounded-2xl px-5 py-3.5 shadow-md backdrop-blur-sm ${msg.role === 'user'
-                            ? 'bg-blue-600 text-white rounded-br-none'
-                            : 'bg-gray-800/80 text-gray-100 border border-gray-700/50 rounded-bl-none'
+                        className={`message-bubble cursor-default px-4 py-3 ${msg.role === 'user'
+                            ? 'message-bubble-user max-w-[78%] md:max-w-[640px]'
+                            : 'message-bubble-assistant max-w-[86%] md:max-w-[760px]'
                             }`}
                     >
                         {msg.role === 'user' ? (
-                            <div className="cursor-default text-[15px] leading-relaxed whitespace-pre-wrap font-medium">
+                            <div className="cursor-default whitespace-pre-wrap text-[15px] font-medium leading-relaxed">
                                 {msg.content}
                             </div>
                         ) : (
                             <div className="markdown-container cursor-default">
-                                {/* 
-                   If it's the last message and we are NOT loading anymore, 
-                   or if it's not the last message, just show Markdown. 
-                   If it IS the last message and we are loading, we might want streaming effect?
-                   Actually the original code just updated 'content' via streaming, relying on React re-render.
-                   Line 11 uses TypingEffect only if... wait let's check original.
-                */}
                                 <MarkdownPreview
                                     source={msg.content}
                                     style={{
@@ -71,7 +63,7 @@ export const MessageList: React.FC<MessageListProps> = memo(({ messages, loading
 
             {loading && (
                 <div className="flex justify-start animate-fade-in">
-                    <div className="bg-gray-800/80 rounded-2xl rounded-bl-none px-4 py-3 border border-gray-700/50 shadow-sm">
+                    <div className="message-bubble message-bubble-assistant px-4 py-3">
                         <TypeLoading />
                     </div>
                 </div>

@@ -42,8 +42,8 @@ const PROVIDER_CONFIGS = {
   },
   gemini: {
     models: {
-      text: 'gemini-2.0-flash',
-      vision: 'gemini-2.0-flash'
+      text: 'gemini-2.5-flash',
+      vision: 'gemini-2.5-flash'
     }
   },
   groq: {
@@ -85,7 +85,7 @@ export class AIProviderManager {
       gemini: {
         provider: 'gemini' as const,
         apiKey: import.meta.env.VITE_GEMINI_API_KEY || '',
-        model: PROVIDER_CONFIGS.gemini.models.text
+        model: import.meta.env.VITE_GEMINI_MODEL || PROVIDER_CONFIGS.gemini.models.text
       },
       groq: {
         provider: 'groq' as const,
@@ -288,7 +288,7 @@ export class AIProviderManager {
 
     try {
       const model = this.geminiClient.getGenerativeModel({
-        model: PROVIDER_CONFIGS.gemini.models.vision,
+        model: import.meta.env.VITE_GEMINI_MODEL || PROVIDER_CONFIGS.gemini.models.vision,
         ...(systemPrompt ? { systemInstruction: systemPrompt } : {})
       });
 

@@ -1,10 +1,11 @@
 import React, { useEffect } from 'react';
+import { EyeOff, Lock } from 'lucide-react';
 
 import ChatUI from './components/ChatUI';
 import { useStealthMode } from './hooks/useStealthMode';
 
 function App() {
-  const { isStealth, concealMode, protectedModeActive, requestSecureRestore } = useStealthMode();
+  const { isStealth, concealMode, requestSecureRestore } = useStealthMode();
 
   useEffect(() => {
     window?.Main?.removeLoading();
@@ -27,7 +28,6 @@ function App() {
   }, []);
 
   const showOverlayPlaceholder = isStealth === true && concealMode === 'overlay';
-  const protectedEnabled = protectedModeActive === true;
 
   const revealFromOverlay = async () => {
     const ok = window.confirm(
@@ -41,14 +41,11 @@ function App() {
     <div className="relative flex flex-col h-screen">
       {/* Stealth Mode Banner */}
       {isStealth === true && (
-        <div className="bg-gradient-to-r from-green-600 to-blue-600 text-white px-4 py-2 text-sm font-medium shadow-lg z-10">
+        <div className="z-10 border-b border-[var(--matte-jade-border)] bg-[var(--matte-jade-soft)] px-4 py-2 text-sm font-medium text-[#c9eadf]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="animate-pulse">🕶️</span>
+              <EyeOff size={16} />
               <span>Stealth Mode Active - Hidden from screen sharing</span>
-            </div>
-            <div className="text-xs opacity-90">
-              Press Ctrl+Shift+S or Ctrl+Alt+S to show
             </div>
           </div>
         </div>
@@ -56,20 +53,18 @@ function App() {
 
       <ChatUI />
       {showOverlayPlaceholder && (
-        <div className="absolute inset-0 z-[10000] bg-slate-900/95 backdrop-blur-md flex flex-col items-center justify-center gap-4 text-slate-100">
+        <div className="absolute inset-0 z-[10000] flex flex-col items-center justify-center gap-4 bg-[rgba(16,17,14,0.96)] text-[var(--matte-text)] backdrop-blur-md">
+          <Lock size={24} className="text-[#c9eadf]" />
           <div className="text-lg font-semibold tracking-wide">Protected Privacy Overlay</div>
-          <div className="text-sm text-slate-300 text-center max-w-md px-6">
+          <div className="max-w-md px-6 text-center text-sm text-[var(--matte-text-soft)]">
             Sensitive content is hidden while sharing. Use Secure Show to restore the full app.
           </div>
           <button
             onClick={revealFromOverlay}
-            className="px-4 py-2 rounded-lg bg-blue-600/30 border border-blue-300/50 text-blue-100 hover:bg-blue-600/40 text-sm font-medium"
+            className="header-chip is-on"
           >
             Secure Show App
           </button>
-          <div className="text-xs text-slate-400">
-            Shortcut: Ctrl+Shift+S {protectedEnabled ? '(confirmation required)' : ''}
-          </div>
         </div>
       )}
     </div>

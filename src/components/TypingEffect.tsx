@@ -25,9 +25,9 @@ function TypingEffect({ text, speed = 20 }: TypingEffectProps) {
   }, [text, speed]);
 
   return (
-    <span className="relative inline-block !cursor-default">
+    <span className="markdown-container relative inline-block !cursor-default">
       {' '}
-      <MarkdownPreview className="!bg-transparent !text-white" source={displayedText} />
+      <MarkdownPreview className="!bg-transparent !text-[var(--matte-text)]" source={displayedText} />
     </span>
   );
 }

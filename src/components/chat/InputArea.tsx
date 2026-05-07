@@ -38,19 +38,19 @@ export const InputArea: React.FC<InputAreaProps> = ({
   const isLiveButtonDisabled = !isLive && isRecording;
 
   return (
-    <div className="p-4 border-t border-gray-700 flex items-center bg-gray-800 relative">
+    <div className="composer relative flex items-center gap-3 p-3">
       {isRecording && (
-        <div className="absolute -top-10 left-0 right-0 flex justify-center">
-          <div className="bg-red-600 text-white px-4 py-1 rounded-full text-sm font-medium animate-pulse flex items-center gap-2">
-            <span className="w-2 h-2 bg-white rounded-full" />
+        <div className="absolute -top-11 left-0 right-0 flex justify-center">
+          <div className="soft-status-banner danger">
+            <span className="h-2 w-2 rounded-full bg-current opacity-80" />
             Recording with high accuracy...
           </div>
         </div>
       )}
       {isProcessingScreenshot && (
-        <div className="absolute -top-10 left-0 right-0 flex justify-center">
-          <div className="bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-medium animate-pulse flex items-center gap-2">
-            <span className="w-2 h-2 bg-white rounded-full" />
+        <div className="absolute -top-11 left-0 right-0 flex justify-center">
+          <div className="soft-status-banner warn">
+            <span className="h-2 w-2 rounded-full bg-current opacity-80" />
             Processing Screenshot...
           </div>
         </div>
@@ -58,20 +58,20 @@ export const InputArea: React.FC<InputAreaProps> = ({
 
       <input
         type="text"
-        className="flex-1 bg-transparent border-none outline-none p-2 cursor-text text-white placeholder-gray-400"
+        className="composer-input min-w-0 flex-1 cursor-text"
         placeholder="Type a message..."
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && handleSend()}
       />
 
-      <div className="flex gap-4">
+      <div className="flex shrink-0 gap-2">
         <button
           onClick={loading ? stopGeneration : () => handleSend()}
-          className={`p-3 hover:opacity-80 rounded-lg transition-colors ${loading ? 'bg-red-600' : 'bg-gray-900'}`}
+          className={`tool-button ${loading ? 'danger' : input.trim() ? 'primary' : ''}`}
           title={loading ? 'Stop Generating' : 'Send Message'}
         >
-          {loading ? <Square size={20} fill="white" /> : <Send size={20} color="white" />}
+          {loading ? <Square size={19} fill="currentColor" /> : <Send size={19} />}
         </button>
 
         {/* High accuracy recording button */}
@@ -84,12 +84,10 @@ export const InputArea: React.FC<InputAreaProps> = ({
             }
           }}
           disabled={isRecordingButtonDisabled}
-          className={`p-3 rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-            isRecording ? 'bg-red-500 animate-pulse' : 'bg-gray-900 hover:opacity-80'
-          }`}
+          className={`tool-button ${isRecording ? 'danger' : ''}`}
           title={isRecording ? 'Stop High Accuracy Recording (L)' : 'High Accuracy Recording (L)'}
         >
-          <Headphones size={20} color="white" />
+          <Headphones size={19} />
         </button>
 
         {/* New Live Transcription Button */}
@@ -102,12 +100,10 @@ export const InputArea: React.FC<InputAreaProps> = ({
             }
           }}
           disabled={isLiveButtonDisabled}
-          className={`p-3 rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-            isLive ? 'bg-green-500 animate-pulse' : 'bg-gray-900 hover:opacity-80'
-          }`}
+          className={`tool-button ${isLive ? 'primary' : ''}`}
           title={isLive ? 'Stop Live Transcription' : 'Live Transcription'}
         >
-          <Mic size={20} color="white" />
+          <Mic size={19} />
         </button>
 
         <button
@@ -117,12 +113,10 @@ export const InputArea: React.FC<InputAreaProps> = ({
             }
           }}
           disabled={isAreaCaptureMode || isProcessingScreenshot}
-          className={`p-3 rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-            isAreaCaptureMode ? 'bg-blue-500 animate-pulse' : 'bg-gray-900 hover:opacity-80'
-          }`}
+          className={`tool-button ${isAreaCaptureMode ? 'warn' : ''}`}
           title="Area Screenshot (S)"
         >
-          <Crop size={20} color="white" />
+          <Crop size={19} />
         </button>
       </div>
     </div>

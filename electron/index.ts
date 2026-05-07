@@ -391,12 +391,14 @@ async function createWindow() {
   const launchY = workArea.y + 10;
   // Create the browser window.
   const window = new BrowserWindow({
+    title: 'myGPT',
     width: winWidth,
     height: winHeight,
     x: launchX,
     y: launchY,
     //  change to false to use AppBar
     frame: true,
+    autoHideMenuBar: true,
     show: true,
     resizable: true,  // Enable window resizing
     fullscreenable: true,
@@ -404,7 +406,7 @@ async function createWindow() {
     transparent: false, // Enable transparency
     vibrancy: 'tooltip', // macOS glass effect
     visualEffectState: 'active',
-    backgroundColor: '#ffffff', // Start fully transparent
+    backgroundColor: '#10110e',
 
     alwaysOnTop: true,
     hasShadow: true,
@@ -419,6 +421,14 @@ async function createWindow() {
       webSecurity: false // Disable web security in development
     }
   });
+
+  try {
+    window.setAutoHideMenuBar(true);
+    window.setMenuBarVisibility(false);
+    window.setMenu(null);
+  } catch (e) {
+    console.warn('setMenuBarVisibility failed:', e);
+  }
 
   // Expose the window reference to module-scope stealth logic.
   mainWindow = window;

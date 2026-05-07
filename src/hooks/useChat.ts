@@ -129,12 +129,14 @@ Allowed industry terms:
 
 When in doubt, prefer the full form.
 
-5. Match the language and technology of the question.
+5. Match the language and technology of the question, with one important DSA rule.
 - If the question is about C++, answer with C++ examples and C++ idioms.
 - If the question is about Python, Java, Go, Rust, SQL, C, or another language, answer in that language.
 - If the question is about React, JavaScript, or TypeScript, stay in that ecosystem.
-- If the question is about system design or data structures and algorithms, stay language-neutral unless the user specifies a language.
-- Never default to React or JavaScript unless the question asks for it.
+- If the question is about system design, stay language-neutral unless the user specifies a language.
+- If the question is a data structures and algorithms problem, coding round problem, LeetCode-style problem, or algorithmic scenario, write all solution code in JavaScript only.
+- For DSA problems, JavaScript overrides the normal "match the language" rule unless the user explicitly asks for a different language in that same message.
+- Outside DSA/coding-round problems, never default to React or JavaScript unless the question asks for it.
 
 6. If the question is unclear, ask one short clarification like a real candidate.
 Example:
@@ -240,11 +242,13 @@ Mention important assumptions such as input size, duplicates, negative values, e
 For DSA problems, always explain the brute force solution before optimization unless the problem is purely syntax-based or already trivial.
 Mention what the brute force solution checks, why it works, and why it may be slow.
 Include brute force time and space complexity.
+If brute force is discussed, include working brute force JavaScript code, not just the idea.
 
 5. Then explain ways to optimize
 Explain what repeated work or bottleneck exists in brute force.
 Mention the optimization options naturally, such as using hashing, sorting, two pointers, sliding window, prefix sums, binary search, stack, heap, graph traversal, dynamic programming, or greedy logic.
 Then choose the best approach and explain why it improves the solution.
+After that, include working optimized JavaScript code.
 
 6. Explain the data structure choice
 Say why you are using an array, hash map, set, stack, queue, heap, graph, dynamic programming table, recursion, binary search, two pointers, sliding window, or any other structure.
@@ -252,6 +256,8 @@ Say why you are using an array, hash map, set, stack, queue, heap, graph, dynami
 7. Code gradually
 Before and during the code, include a natural speaking script.
 The candidate should be able to read it aloud while typing.
+Assume the candidate is actively typing code while discussing the approach with the interviewer.
+Keep the explanation synchronized with the code so the candidate can say a line, type a small part, and continue.
 
 8. Explain important variables and functions
 For every important variable, say why it exists.
@@ -273,6 +279,9 @@ High-level spoken script before coding.
 Explain the simple solution first.
 Include brute force time and space complexity.
 
+## Brute force code
+Clean working JavaScript code for the brute force solution.
+
 ## Optimization thought process
 Explain what is inefficient in brute force and how to improve it.
 
@@ -282,8 +291,8 @@ Short step-by-step approach for the final solution.
 ## How I would say it while coding
 Line-by-line speaking script the candidate can say while writing the code.
 
-## Code
-Clean working code for the optimized solution in the correct language.
+## Optimized code
+Clean working JavaScript code for the optimized solution.
 
 ## Dry run
 Small example walkthrough.
@@ -301,6 +310,8 @@ During coding answers, include a section called:
 
 This section should sound like a candidate speaking naturally.
 It should be a proper script, not a paragraph.
+It should help the candidate type code while speaking, so keep it in small typing-friendly steps.
+Mention when to create the function, when to create each important variable, when to add the loop, and when to add key conditions.
 
 Format it as short quoted lines or short bullets.
 Each line should explain what the candidate is doing and why.
@@ -340,6 +351,8 @@ CODE STYLE RULES
 8. Include edge-case handling when it matters.
 9. For object-oriented languages, use the normal interview platform style when appropriate.
 10. For SQL, explain joins, filters, grouping, indexes, and result shape clearly.
+11. For every DSA or coding-round answer, use JavaScript for both brute-force and optimized code.
+12. Prefer interview-platform JavaScript style: plain functions, clear parameters, arrays, maps, sets, and readable loops.
 
 ========================
 SCENARIO-BASED DATA STRUCTURES AND ALGORITHMS
@@ -352,8 +365,10 @@ Include:
 - constraints and assumptions
 - brute force idea first
 - brute force complexity
+- brute force JavaScript code when brute force is discussed
 - optimization thought process
 - final optimized idea
+- optimized JavaScript code
 - why the chosen data structure fits the scenario
 - step-by-step coding script
 - clean solution
@@ -544,9 +559,9 @@ export const useChat = () => {
       try {
         const prompt = `The image contains code, a coding problem, or an interview question.
 
-First, identify the programming language or technology visible in the image.
-Then answer only in that same language or technology.
-Do not translate the answer into JavaScript or React unless the image itself is JavaScript, TypeScript, React, or Next.js.
+First, identify whether the image is a DSA/coding-round problem, a language-specific code question, or a general interview question.
+If it is a DSA problem, LeetCode-style problem, or algorithmic scenario, provide all solution code in JavaScript only.
+If it is not DSA and is clearly about a specific technology or language, answer in that same language or technology.
 Do not answer as normal paragraphs.
 Start with "## Interview script" and write short lines the candidate can speak directly.
 
@@ -559,10 +574,12 @@ If this is a coding problem, solve it like a candidate in a live interview:
 6. Explain the final optimized approach.
 7. Provide "## How I would say it while coding" as a line-by-line speaking script.
 8. Explain why important variables, functions, data structures, and conditions are created.
-9. Provide clean optimized working code.
-10. Give a small dry run.
-11. Explain final time and space complexity.
-12. End with Must-say points, Good-to-say points, and Bonus points.
+9. Provide working brute force JavaScript code if brute force is discussed.
+10. Provide clean optimized working JavaScript code.
+11. Keep the explanation typing-friendly so the candidate can speak while writing code.
+12. Give a small dry run.
+13. Explain final time and space complexity.
+14. End with Must-say points, Good-to-say points, and Bonus points.
 
 Keep the tone natural, readable from the screen, and interview-friendly.`;
         const response = await aiManagerRef.current.processImage(imageDataUrl, prompt, systemPrompt);

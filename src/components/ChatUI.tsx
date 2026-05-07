@@ -137,7 +137,7 @@ export default function ChatUI() {
   }, [messages, loading]);
 
   return (
-    <div className="flex flex-col h-screen w-full bg-gray-900/90 text-white font-sans antialiased overflow-hidden">
+    <div className="app-shell flex h-screen w-full flex-col overflow-hidden font-sans antialiased">
       {/* Area Screenshot Overlay */}
       {isAreaCaptureMode && (
         <AreaScreenshot

@@ -46,6 +46,8 @@ VITE_DEEPSEEK_API_KEY=sk-your-deepseek-key-here
 
 # Gemini Configuration (if using Gemini)
 VITE_GEMINI_API_KEY=your-gemini-api-key-here
+# Optional: defaults to gemini-2.5-flash
+VITE_GEMINI_MODEL=gemini-2.5-flash
 
 # Optional: Custom system prompt
 VITE_SYSTEM_PROMPT=Your custom system prompt here
