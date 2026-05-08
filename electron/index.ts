@@ -38,6 +38,7 @@ let prevAlwaysOnTop = true;
 const STEALTH_HIDE_SHORTCUT = 'CommandOrControl+Shift+H';
 const STEALTH_SHOW_SHORTCUT = 'CommandOrControl+Shift+S';
 const STEALTH_SHOW_SHORTCUT_ALT = 'CommandOrControl+Alt+S';
+const PROVIDER_CYCLE_SHORTCUT = 'CommandOrControl+Shift+A';
 type StealthConcealMode = 'hide' | 'overlay';
 
 interface PrivacyState {
@@ -327,9 +328,21 @@ function setStealth(enable: boolean) {
   }
 }
 
+function requestProviderCycle() {
+  const win = mainWindow;
+  if (!win || win.isDestroyed()) return;
+
+  try {
+    win.webContents.send('provider-cycle-requested');
+    console.log(`⌨️  [MAIN] Provider cycle requested (${PROVIDER_CYCLE_SHORTCUT})`);
+  } catch (e) {
+    console.warn('provider-cycle-requested send failed:', e);
+  }
+}
+
 /**
  * Idempotent shortcut registration. Safe to call multiple times.
- * Returns true if both shortcuts registered successfully.
+ * Returns true if all shortcuts registered successfully.
  */
 function registerStealthShortcuts(): boolean {
   try {
@@ -339,16 +352,23 @@ function registerStealthShortcuts(): boolean {
     if (globalShortcut.isRegistered(STEALTH_SHOW_SHORTCUT)) {
       globalShortcut.unregister(STEALTH_SHOW_SHORTCUT);
     }
+    if (globalShortcut.isRegistered(STEALTH_SHOW_SHORTCUT_ALT)) {
+      globalShortcut.unregister(STEALTH_SHOW_SHORTCUT_ALT);
+    }
+    if (globalShortcut.isRegistered(PROVIDER_CYCLE_SHORTCUT)) {
+      globalShortcut.unregister(PROVIDER_CYCLE_SHORTCUT);
+    }
   } catch {}
 
   const ok1 = globalShortcut.register(STEALTH_HIDE_SHORTCUT, () => setStealth(true));
   const ok2 = globalShortcut.register(STEALTH_SHOW_SHORTCUT, () => { void requestSecureRestore('keyboard-shortcut', true); });
   const ok3 = globalShortcut.register(STEALTH_SHOW_SHORTCUT_ALT, () => { void requestSecureRestore('keyboard-shortcut', true); });
-  console.log(`⌨️  [MAIN] Stealth shortcuts — hide (${STEALTH_HIDE_SHORTCUT}): ${ok1}, restore (${STEALTH_SHOW_SHORTCUT}): ${ok2}, restore-alt (${STEALTH_SHOW_SHORTCUT_ALT}): ${ok3}`);
-  if (!ok1 || !ok2 || !ok3) {
+  const ok4 = globalShortcut.register(PROVIDER_CYCLE_SHORTCUT, requestProviderCycle);
+  console.log(`⌨️  [MAIN] Shortcuts — hide (${STEALTH_HIDE_SHORTCUT}): ${ok1}, restore (${STEALTH_SHOW_SHORTCUT}): ${ok2}, restore-alt (${STEALTH_SHOW_SHORTCUT_ALT}): ${ok3}, provider (${PROVIDER_CYCLE_SHORTCUT}): ${ok4}`);
+  if (!ok1 || !ok2 || !ok3 || !ok4) {
     console.warn('⚠️  [MAIN] Shortcut registration partial — tray icon is your fallback.');
   }
-  return ok1 && ok2 && ok3;
+  return ok1 && ok2 && ok3 && ok4;
 }
 
 /**
@@ -630,6 +650,8 @@ async function createWindow() {
     }
     try { globalShortcut.unregister(STEALTH_HIDE_SHORTCUT); } catch {}
     try { globalShortcut.unregister(STEALTH_SHOW_SHORTCUT); } catch {}
+    try { globalShortcut.unregister(STEALTH_SHOW_SHORTCUT_ALT); } catch {}
+    try { globalShortcut.unregister(PROVIDER_CYCLE_SHORTCUT); } catch {}
   });
 
   nativeTheme.themeSource = 'dark';

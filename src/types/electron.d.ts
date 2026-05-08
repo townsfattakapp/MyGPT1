@@ -39,6 +39,9 @@ export interface IElectronAPI {
   // Platform info
   getPlatformInfo: () => Promise<{ platform: string; contentProtectionSupported: boolean }>;
 
+  // Provider switching
+  onProviderCycleRequest: (callback: () => void) => () => void;
+
   // Zoom
   getZoomFactor: () => number;
   setZoomFactor: (factor: number) => void;

@@ -20,6 +20,8 @@ import { useRealtimeTranscription } from '../hooks/useLiveTranscription';
 
 export default function ChatUI() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastProviderCycleAtRef = useRef(0);
+  const providerRevealTimerRef = useRef<number | null>(null);
 
   // 1. Chat Logic
   const {
@@ -40,6 +42,43 @@ export default function ChatUI() {
   } = useChat();
 
   const [isProfileEditorOpen, setIsProfileEditorOpen] = React.useState(false);
+  const [isProviderNameVisible, setIsProviderNameVisible] = React.useState(false);
+
+  const cycleProvider = React.useCallback(() => {
+    const now = Date.now();
+    if (now - lastProviderCycleAtRef.current < 250) return;
+    lastProviderCycleAtRef.current = now;
+
+    const providers = getAvailableProviders();
+    if (providers.length < 2) return;
+
+    const currentIndex = providers.indexOf(currentProvider);
+    const nextProvider = providers[(currentIndex + 1) % providers.length] ?? providers[0];
+    if (nextProvider && nextProvider !== currentProvider) {
+      switchProvider(nextProvider);
+      setIsProviderNameVisible(true);
+      if (providerRevealTimerRef.current !== null) {
+        window.clearTimeout(providerRevealTimerRef.current);
+      }
+      providerRevealTimerRef.current = window.setTimeout(() => {
+        setIsProviderNameVisible(false);
+        providerRevealTimerRef.current = null;
+      }, 2200);
+    }
+  }, [currentProvider, getAvailableProviders, switchProvider]);
+
+  useEffect(() => {
+    const removeProviderCycleListener = window.Main?.onProviderCycleRequest?.(cycleProvider);
+    return () => removeProviderCycleListener?.();
+  }, [cycleProvider]);
+
+  useEffect(() => {
+    return () => {
+      if (providerRevealTimerRef.current !== null) {
+        window.clearTimeout(providerRevealTimerRef.current);
+      }
+    };
+  }, []);
 
   // 2. Audio Logic (Whisper File-based)
   const {
@@ -128,7 +167,8 @@ export default function ChatUI() {
     onStartRecording: startSystemRecording,
     onStopRecording: stopSystemRecording,
     onTakeScreenshot: takeScreenshot,
-    onEnterAreaCaptureMode: () => setIsAreaCaptureMode(true)
+    onEnterAreaCaptureMode: () => setIsAreaCaptureMode(true),
+    onCycleProvider: cycleProvider
   });
 
   // Auto-scroll
@@ -181,7 +221,8 @@ export default function ChatUI() {
       <ChatHeader
         messageCount={messages.length}
         currentProvider={currentProvider}
-        switchProvider={switchProvider}
+        cycleProvider={cycleProvider}
+        revealProviderName={isProviderNameVisible}
         getAvailableProviders={getAvailableProviders}
         clearChat={clearChat}
         onEditProfile={() => setIsProfileEditorOpen(true)}

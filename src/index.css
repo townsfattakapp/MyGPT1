@@ -119,22 +119,48 @@ body {
   padding: 0 0.5rem;
 }
 
-.provider-select-native {
-  appearance: none;
-  background: transparent;
-  border: 0;
-  color: inherit;
+.provider-cycle-button {
   cursor: pointer;
-  flex: 1;
-  font-size: 0.78rem;
-  font-weight: 700;
-  min-width: 0;
-  outline: 0;
+  font: inherit;
+  justify-content: center;
+  min-width: 120px;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, filter 160ms ease;
+  user-select: none;
 }
 
-.provider-select-native option {
-  background: #f2eee5;
-  color: #171813;
+.provider-cycle-button:hover {
+  filter: brightness(1.08);
+}
+
+.provider-cycle-button:focus-visible {
+  outline: 2px solid rgba(232, 226, 214, 0.36);
+  outline-offset: 2px;
+}
+
+.provider-cycle-label {
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.provider-cycle-label.is-revealed {
+  color: var(--matte-text);
+}
+
+.provider-cycle-count {
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 700;
+  opacity: 0.68;
+}
+
+.provider-private {
+  background: rgba(232, 226, 214, 0.055);
+  border-color: rgba(232, 226, 214, 0.14);
+  color: var(--matte-text-soft);
 }
 
 .provider-openai {

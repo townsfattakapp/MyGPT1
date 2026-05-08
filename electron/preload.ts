@@ -103,6 +103,12 @@ const api = {
     return ipcRenderer.invoke('get-platform-info');
   },
 
+  onProviderCycleRequest: (callback: () => void) => {
+    const handler = () => callback();
+    ipcRenderer.on('provider-cycle-requested', handler);
+    return () => ipcRenderer.removeListener('provider-cycle-requested', handler);
+  },
+
   /* ---------- Zoom ---------- */
   getZoomFactor: (): number => {
     try { return webFrame.getZoomFactor(); } catch { return 1; }

@@ -10,6 +10,7 @@ interface UseKeyboardShortcutsProps {
   onStopRecording: () => void;
   onTakeScreenshot: () => void;
   onEnterAreaCaptureMode: () => void;
+  onCycleProvider: () => void;
 }
 
 export const useKeyboardShortcuts = ({
@@ -21,7 +22,8 @@ export const useKeyboardShortcuts = ({
   onStartRecording,
   onStopRecording,
   onTakeScreenshot,
-  onEnterAreaCaptureMode
+  onEnterAreaCaptureMode,
+  onCycleProvider
 }: UseKeyboardShortcutsProps) => {
   // Restore persisted zoom on mount
   useEffect(() => {
@@ -46,6 +48,7 @@ export const useKeyboardShortcuts = ({
       // console.log('🔑 [DEBUG] Key pressed:', e.key, 'Target:', (e.target as HTMLElement).tagName);
 
       const isTyping = ['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName);
+      const key = e.key.toLowerCase();
 
       // Window Movement (Arrow Keys)
       if (e.key.startsWith('Arrow')) {
@@ -93,10 +96,15 @@ export const useKeyboardShortcuts = ({
         }
       }
 
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && key === 'a') {
+        e.preventDefault();
+        console.log('⌨️ [RENDERER] Ctrl+Shift+A pressed - Cycling AI provider');
+        onCycleProvider();
+        return;
+      }
+
       // Block letter shortcuts if typing
       if (isTyping) return;
-
-      const key = e.key.toLowerCase();
 
       if (key === 'l') {
         if (isRecording) {
@@ -132,6 +140,7 @@ export const useKeyboardShortcuts = ({
     onStartRecording,
     onStopRecording,
     onTakeScreenshot,
-    onEnterAreaCaptureMode
+    onEnterAreaCaptureMode,
+    onCycleProvider
   ]);
 };

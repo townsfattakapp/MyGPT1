@@ -2,17 +2,14 @@ import React from 'react';
 import {
     AlertTriangle,
     Bot,
-    ChevronDown,
     Circle,
     Eye,
     EyeOff,
     Lock,
-    Search,
+    RefreshCw,
     Shield,
-    Sparkles,
     Trash2,
     UserRound,
-    Zap
 } from 'lucide-react';
 import { AIProvider } from '../../services/aiProvider';
 import { useStealthMode } from '../../hooks/useStealthMode';
@@ -21,7 +18,8 @@ import type { StealthConcealMode } from '../../types/electron';
 interface ChatHeaderProps {
     messageCount: number;
     currentProvider: AIProvider;
-    switchProvider: (provider: AIProvider) => void;
+    cycleProvider: () => void;
+    revealProviderName: boolean;
     getAvailableProviders: () => AIProvider[];
     clearChat: () => void;
     onEditProfile: () => void;
@@ -30,30 +28,32 @@ interface ChatHeaderProps {
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
     messageCount,
     currentProvider,
-    switchProvider,
+    cycleProvider,
+    revealProviderName,
     getAvailableProviders,
     clearChat,
     onEditProfile
 }) => {
     const providers = getAvailableProviders();
 
-    const getProviderInfo = (provider: AIProvider) => {
+    const getProviderName = (provider: AIProvider) => {
         switch (provider) {
             case 'openai':
-                return { name: 'OpenAI', className: 'provider-openai', Icon: Bot };
+                return 'OpenAI';
             case 'deepseek':
-                return { name: 'DeepSeek', className: 'provider-deepseek', Icon: Search };
+                return 'DeepSeek';
             case 'gemini':
-                return { name: 'Gemini', className: 'provider-gemini', Icon: Sparkles };
+                return 'Gemini';
             case 'groq':
-                return { name: 'Groq', className: 'provider-groq', Icon: Zap };
+                return 'Groq';
             default:
-                return { name: provider, className: 'provider-openai', Icon: Circle };
+                return provider;
         }
     };
 
-    const currentInfo = getProviderInfo(currentProvider);
-    const CurrentProviderIcon = currentInfo.Icon;
+    const currentProviderName = getProviderName(currentProvider);
+    const providerIndex = providers.indexOf(currentProvider);
+    const providerPosition = providerIndex >= 0 ? providerIndex + 1 : 1;
     const {
         isStealth,
         protectedModeActive,
@@ -87,25 +87,24 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         <header className="chat-header sticky top-0 z-10 px-2 py-1.5">
             <div className="flex flex-wrap items-center justify-between gap-1.5">
                 <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-                    <div className={`provider-select-shell ${currentInfo.className}`}>
-                        <CurrentProviderIcon size={14} strokeWidth={2.3} />
-                        <select
-                            value={currentProvider}
-                            onChange={(e) => switchProvider(e.target.value as AIProvider)}
-                            className="provider-select-native"
-                            title="AI provider"
-                        >
-                            {providers.map(provider => {
-                                const info = getProviderInfo(provider);
-                                return (
-                                    <option key={provider} value={provider}>
-                                        {info.name}
-                                    </option>
-                                );
-                            })}
-                        </select>
-                        <ChevronDown size={14} />
-                    </div>
+                    <button
+                        type="button"
+                        onClick={cycleProvider}
+                        className="provider-select-shell provider-cycle-button provider-private"
+                        title="Switch AI provider (Ctrl+Shift+A)"
+                        aria-label={`Switch AI provider. Current provider: ${currentProviderName}`}
+                    >
+                        <Bot size={14} strokeWidth={2.3} />
+                        <span className={`provider-cycle-label ${revealProviderName ? 'is-revealed' : ''}`}>
+                            {revealProviderName ? `AI: ${currentProviderName}` : 'AI'}
+                        </span>
+                        {providers.length > 1 && !revealProviderName && (
+                            <span className="provider-cycle-count">
+                                {providerPosition}/{providers.length}
+                            </span>
+                        )}
+                        <RefreshCw size={13} />
+                    </button>
 
                     <div className="header-chip" title="Provider is ready">
                         <span className="status-dot" />

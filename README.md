@@ -60,11 +60,11 @@ VITE_SYSTEM_PROMPT=Your custom system prompt here
 
 ## Switching Providers
 
-You can switch between AI providers at runtime using the dropdown in the chat header:
+You can switch between AI providers at runtime without opening a visible dropdown:
 
-1. Click the provider selector in the top-left corner
-2. Choose your preferred AI provider
-3. The app will automatically switch to use that provider's API
+1. Press `Ctrl+Shift+A` to cycle to the next AI provider.
+2. Or click the compact `AI` provider button in the top-left corner.
+3. The button briefly reveals the selected provider, then returns to the compact AI view.
 
 ## How to Start the App
 
