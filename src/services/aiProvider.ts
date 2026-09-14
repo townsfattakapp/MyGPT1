@@ -49,7 +49,7 @@ const PROVIDER_CONFIGS = {
   groq: {
     baseURL: 'https://api.groq.com/openai/v1',
     models: {
-      text: 'llama-3.3-70b-versatile',
+      text: 'qwen/qwen3.8-27b',
       vision: 'meta-llama/llama-4-scout-17b-16e-instruct'
     }
   }
@@ -125,7 +125,7 @@ export class AIProviderManager {
       groq: {
         provider: 'groq' as const,
         apiKey: getSelectedGroqApiKey(),
-        model: PROVIDER_CONFIGS.groq.models.text
+        model: import.meta.env.VITE_GROQ_MODEL || PROVIDER_CONFIGS.groq.models.text
       }
     };
 
