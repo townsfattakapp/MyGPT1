@@ -82,6 +82,11 @@
     ],
     "directories": {
       "buildResources": "resources"
+    },
+    "win": {
+      "signAndEditExecutable": false,
+      "signDlls": false,
+      "signExts": []
     }
   }
 }
